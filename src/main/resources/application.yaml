@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: mcp-server
+
+  # ── MySQL DataSource ──────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:mysql://localhost:3306/mcp_demo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # ── JPA / Hibernate ──────────────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: update          # use 'validate' in production
+    show-sql: true
+    open-in-view: false         # MUST be false – prevents lazy-loading hangs in async SSE threads
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ── Spring AI MCP Server (SSE transport via WebMVC) ────────────────────────
+  ai:
+    mcp:
+      server:
+        type: ASYNC
+        name: mysql-mcp-server
+        version: 1.0.0
+        sse-message-endpoint: /mcp/message
+
+  main:
+    banner-mode: "off"   # Disable Spring Boot startup banner
+
+# ── Server port ──────────────────────────────────────────────────────────────
+server:
+  port: 8080
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.mcp.mcp_server: DEBUG
+    org.springframework.ai: DEBUG
+  file:
+    name: ${user.home}/logs/mcp-server.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 5
