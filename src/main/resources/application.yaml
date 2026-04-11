@@ -19,14 +19,14 @@ spring:
       hibernate:
         format_sql: true
 
-  # ── Spring AI MCP Server (SSE transport via WebMVC) ────────────────────────
+  # ── Spring AI MCP Server (Streamable HTTP transport via WebMVC) ─────────────
   ai:
     mcp:
       server:
         type: ASYNC
         name: mysql-mcp-server
         version: 1.0.0
-        sse-message-endpoint: /mcp/message
+        protocol: streamable       # Streamable HTTP (replaces legacy SSE)
 
   main:
     banner-mode: "off"   # Disable Spring Boot startup banner

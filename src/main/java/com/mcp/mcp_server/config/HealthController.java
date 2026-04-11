@@ -22,8 +22,7 @@ public class HealthController {
                 "service", "mysql-mcp-server",
                 "timestamp", Instant.now().toString(),
                 "endpoints", Map.of(
-                        "sse", "/sse",
-                        "message", "/mcp/message",
+                        "mcp", "/mcp",
                         "health", "/health"
                 )
         );
