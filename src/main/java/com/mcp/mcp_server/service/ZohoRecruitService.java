@@ -1,18 +1,24 @@
 package com.mcp.mcp_server.service;
 
 import com.mcp.mcp_server.entity.Candidate;
+import com.mcp.mcp_server.util.ZohoRecruitCandidateSearchField;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service for integrating with ZohoRecruit API to search for candidate profiles.
- *
  * This is a wrapper/facade around the new Zoho Recruit OAuth and API services
  * that maintains backward compatibility with existing code.
+ * Uses ZohoCriteriaBuilder for building valid Zoho Recruit filter criteria.
+ *
+ * VALIDATION RULES:
+ * - Only fields from ZohoRecruitCandidateSearchField enum are used
+ * - Operators are automatically selected based on field type
+ * - Numeric fields use numeric operators (greater_equal, less_equal)
+ * - String fields use string operators (contains, equals)
  */
 @Slf4j
 @Service
@@ -33,8 +39,9 @@ public class ZohoRecruitService {
         try {
             log.info("Searching candidates with criteria: {}", searchCriteria);
 
-            // Build criteria string from map for new API service
-            String criteria = buildCriteriaString(searchCriteria);
+            // Build criteria string using ZohoCriteriaBuilder with field validation
+            String criteria = buildCriteriaStringUsingBuilder(searchCriteria);
+            log.debug("Built Zoho criteria: {}", criteria);
 
             // Call the new API service
             return zohoRecruitAPIService.searchCandidates(criteria, 1, pageSize);
@@ -58,68 +65,152 @@ public class ZohoRecruitService {
     }
 
     /**
-     * Build Zoho Recruit search criteria string from map
-     * Converts map like {"skills": "Java,Python", "experience_level": "Senior"}
-     * to criteria string like "(Skill_Set:contains:Java)and(Experience_Level:contains:Senior)"
+     * Build Zoho Recruit search criteria string from map using ZohoCriteriaBuilder
+     * Converts map like {"skills": "Java,Python", "experience_years": "5"}
+     * to valid Zoho criteria string using proper field names and operators
+     *
+     * VALIDATION ENSURES:
+     * - Only valid field names from ZohoRecruitCandidateSearchField are used
+     * - Correct operators for each field type
+     * - Numeric fields don't use string operators
+     *
+     * @param searchCriteria Map with keys: skills, experience_years, location, status, etc.
+     * @return Valid Zoho Recruit criteria string
      */
-    private String buildCriteriaString(Map<String, String> searchCriteria) {
+    private String buildCriteriaStringUsingBuilder(Map<String, String> searchCriteria) {
         if (searchCriteria == null || searchCriteria.isEmpty()) {
             return "";
         }
 
-        List<String> criteria = new ArrayList<>();
+        ZohoCriteriaBuilder.CriteriaFilter filter = new ZohoCriteriaBuilder.CriteriaFilter();
 
-        for (Map.Entry<String, String> entry : searchCriteria.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
+        try {
+            // Process each search criterion
+            for (Map.Entry<String, String> entry : searchCriteria.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
 
-            if (value == null || value.isEmpty()) {
-                continue;
-            }
-
-            // Map common criteria keys to Zoho field names
-            String zohoField = mapToZohoField(key);
-
-            if ("skills".equals(key)) {
-                // Handle multiple skills
-                for (String skill : value.split(",")) {
-                    criteria.add(String.format("(Skill_Set:contains:%s)", skill.trim()));
+                if (value == null || value.isEmpty()) {
+                    continue;
                 }
-            } else if ("experience_level".equals(key)) {
-                criteria.add(String.format("(Experience_Level:contains:%s)", value));
-            } else if ("location".equals(key)) {
-                criteria.add(String.format("(Location:contains:%s)", value));
-            } else if ("designation".equals(key) || "job_title".equals(key)) {
-                criteria.add(String.format("(Designation:contains:%s)", value));
-            } else {
-                // Generic field mapping
-                criteria.add(String.format("(%s:contains:%s)", zohoField, value));
+
+                switch (key.toLowerCase()) {
+                    case "skills" -> {
+                        // Handle multiple skills (comma-separated)
+                        String[] skills = value.split(",");
+                        for (String skill : skills) {
+                            filter.addSkill(skill.trim());
+                        }
+                    }
+                    case "skill" -> filter.addSkill(value);
+
+                    case "experience_years", "experience_in_years", "years_of_experience" -> {
+                        try {
+                            filter.addExperience(Integer.parseInt(value));
+                        } catch (NumberFormatException e) {
+                            log.warn("Invalid experience value (must be numeric): {}. Skipping.", value);
+                        }
+                    }
+
+                    case "location", "city" -> filter.addLocation(value);
+
+                    case "status", "candidate_status" -> filter.addStatus(value);
+
+                    case "current_salary" -> {
+                        try {
+                            Integer salary = Integer.parseInt(value);
+                            filter.addCondition(ZohoRecruitCandidateSearchField.CURRENT_SALARY,
+                                    ZohoCriteriaBuilder.Operator.GREATER_EQUAL, salary);
+                        } catch (NumberFormatException e) {
+                            log.warn("Invalid salary value (must be numeric): {}. Skipping.", value);
+                        }
+                    }
+
+                    case "expected_salary" -> {
+                        try {
+                            Integer salary = Integer.parseInt(value);
+                            filter.addCondition(ZohoRecruitCandidateSearchField.EXPECTED_SALARY,
+                                    ZohoCriteriaBuilder.Operator.GREATER_EQUAL, salary);
+                        } catch (NumberFormatException e) {
+                            log.warn("Invalid salary value (must be numeric): {}. Skipping.", value);
+                        }
+                    }
+
+                    case "designation", "job_title" ->
+                        filter.addCondition(ZohoRecruitCandidateSearchField.DESIGNATION,
+                                ZohoCriteriaBuilder.Operator.CONTAINS, value);
+
+                    case "company", "current_employer" ->
+                        filter.addCondition(ZohoRecruitCandidateSearchField.CURRENT_EMPLOYER,
+                                ZohoCriteriaBuilder.Operator.CONTAINS, value);
+
+                    case "email" ->
+                        filter.addCondition(ZohoRecruitCandidateSearchField.EMAIL,
+                                ZohoCriteriaBuilder.Operator.EQUALS, value);
+
+                    case "phone", "mobile" ->
+                        filter.addCondition(ZohoRecruitCandidateSearchField.MOBILE,
+                                ZohoCriteriaBuilder.Operator.EQUALS, value);
+
+                    // Additional fields
+                    case "qualification" ->
+                        filter.addCondition(ZohoRecruitCandidateSearchField.HIGHEST_QUALIFICATION_HELD,
+                                ZohoCriteriaBuilder.Operator.EQUALS, value);
+
+                    case "state" ->
+                        filter.addCondition(ZohoRecruitCandidateSearchField.STATE,
+                                ZohoCriteriaBuilder.Operator.EQUALS, value);
+
+                    case "country" ->
+                        filter.addCondition(ZohoRecruitCandidateSearchField.COUNTRY,
+                                ZohoCriteriaBuilder.Operator.EQUALS, value);
+
+                    default -> {
+                        log.debug("Unknown search criterion key: {}. Attempting to map...", key);
+                        // Try to find matching field in enum by name normalization
+                        attemptToAddCondition(filter, key, value);
+                    }
+                }
             }
-        }
 
-        // Join criteria with 'and' operator
-        if (criteria.isEmpty()) {
-            return "";
+            return filter.build();
+        } catch (Exception e) {
+            log.error("Error building criteria with ZohoCriteriaBuilder", e);
+            throw new IllegalArgumentException("Invalid search criteria: " + e.getMessage(), e);
         }
-
-        return "(" + String.join(")and(", criteria) + ")";
     }
 
     /**
-     * Map search criterion key to Zoho Recruit field name
+     * Attempt to add a condition for unmapped keys by finding matching field in enum
      */
-    private String mapToZohoField(String key) {
-        return switch (key) {
-            case "skills" -> "Skill_Set";
-            case "experience_level" -> "Experience_Level";
-            case "location" -> "Location";
-            case "designation", "job_title" -> "Designation";
-            case "company" -> "Company";
-            case "email" -> "Email";
-            case "phone" -> "Phone";
-            default -> key.replaceAll("_", "_");
-        };
+    private void attemptToAddCondition(ZohoCriteriaBuilder.CriteriaFilter filter, String key, String value) {
+        try {
+            // Try exact match
+            for (ZohoRecruitCandidateSearchField field : ZohoRecruitCandidateSearchField.values()) {
+                if (field.getFieldName().equalsIgnoreCase(key)) {
+                    // Determine operator based on field type
+                    ZohoCriteriaBuilder.Operator op = field.isNumeric() ?
+                            ZohoCriteriaBuilder.Operator.GREATER_EQUAL :
+                            ZohoCriteriaBuilder.Operator.CONTAINS;
+
+                    if (field.isNumeric()) {
+                        try {
+                            filter.addCondition(field, op, Integer.parseInt(value));
+                        } catch (NumberFormatException e) {
+                            log.warn("Cannot parse numeric value for field {}: {}", field.getFieldName(), value);
+                        }
+                    } else {
+                        filter.addCondition(field, op, value);
+                    }
+                    return;
+                }
+            }
+            log.warn("No matching field found for criterion: {}. Ignoring.", key);
+        } catch (Exception e) {
+            log.warn("Error attempting to add condition for key {}: {}", key, e.getMessage());
+        }
     }
+
 
     /**
      * Get access token (for backward compatibility)
