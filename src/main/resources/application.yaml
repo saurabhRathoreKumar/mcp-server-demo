@@ -1,32 +1,23 @@
 spring:
   application:
-    name: mcp-server
-
-  # ── MySQL DataSource ──────────────────────────────────────────────────────────
-  datasource:
-    url: jdbc:mysql://localhost:3306/mcp_demo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
-  # ── JPA / Hibernate ──────────────────────────────────────────────────────────
-  jpa:
-    hibernate:
-      ddl-auto: update          # use 'validate' in production
-    show-sql: true
-    open-in-view: false         # MUST be false – prevents lazy-loading hangs in async SSE threads
-    properties:
-      hibernate:
-        format_sql: true
+    name: recruitment-mcp-server
 
   # ── Spring AI MCP Server (Streamable HTTP transport via WebMVC) ─────────────
   ai:
     mcp:
       server:
         type: ASYNC
-        name: mysql-mcp-server
+        name: recruitment-mcp-server
         version: 1.0.0
         protocol: streamable       # Streamable HTTP (replaces legacy SSE)
+
+    # ── OpenAI Configuration - Using OpenAI SDK for Claude Haiku access ─────────
+    # Note: Configure with Anthropic API key and Claude model name
+    openai:
+      api-key: ${ANTHROPIC_API_KEY:sk-ant-}
+      base-url: ${ANTHROPIC_API_BASE_URL:https://api.anthropic.com/v1}
+      model:
+        name: ${LLM_MODEL:claude-3-5-haiku-20241022}  # Claude Haiku model for fast processing
 
   main:
     banner-mode: "off"   # Disable Spring Boot startup banner
@@ -34,6 +25,25 @@ spring:
 # ── Server port ──────────────────────────────────────────────────────────────
 server:
   port: 8080
+
+# ── Zoho Recruit Configuration ────────────────────────────────────────────────
+zoho:
+  recruit:
+    client-id: ${ZOHO_RECRUIT_CLIENT_ID:your-client-id}
+    client-secret: ${ZOHO_RECRUIT_CLIENT_SECRET:your-client-secret}
+    refresh-token: ${ZOHO_RECRUIT_REFRESH_TOKEN:your-refresh-token}
+    organization-id: ${ZOHO_RECRUIT_ORG_ID:your-org-id}
+    api-url: ${ZOHO_RECRUIT_API_URL:https://recruit.zoho.com/api/v2}
+
+# ── AI Enhanced Recruitment Configuration ──────────────────────────────────
+recruitment:
+  ai:
+    enabled: true
+    use-semantic-matching: true
+    confidence-threshold: 0.65
+    max-skill-suggestions: 5
+    enable-jd-optimization: true
+    model-provider: anthropic-claude  # Using Claude Haiku for intelligent analysis
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging:

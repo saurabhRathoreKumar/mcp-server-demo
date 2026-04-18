@@ -1,8 +1,6 @@
 package com.mcp.mcp_server.config;
 
-import com.mcp.mcp_server.tools.EmployeeTools;
-import com.mcp.mcp_server.tools.OrderTools;
-import com.mcp.mcp_server.tools.ProductTools;
+import com.mcp.mcp_server.tools.RecruitmentTools;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
@@ -19,54 +17,17 @@ import org.springframework.context.annotation.Configuration;
 public class McpServerConfig {
 
     /**
-     * Registers all employee-related tools.
+     * Registers all recruitment-related tools.
      * Tools exposed:
-     *   - getAllEmployees
-     *   - getEmployeeById
-     *   - getEmployeesByDepartment
-     *   - searchEmployeesByName
-     *   - getAllDepartments
-     *   - getEmployeesAboveSalary
+     *   - parseJobDescription
+     *   - searchCandidatesInZohoRecruit
+     *   - findAndRankCandidatesForJD
+     *   - generateSearchFiltersFromJD
      */
     @Bean
-    public ToolCallbackProvider employeeToolProvider(EmployeeTools employeeTools) {
+    public ToolCallbackProvider recruitmentToolProvider(RecruitmentTools recruitmentTools) {
         return MethodToolCallbackProvider.builder()
-                .toolObjects(employeeTools)
-                .build();
-    }
-
-    /**
-     * Registers all product-related tools.
-     * Tools exposed:
-     *   - getAllProducts
-     *   - getProductById
-     *   - getProductBySku
-     *   - searchProductsByName
-     *   - getProductsByCategory
-     *   - getLowStockProducts
-     *   - getAllProductCategories
-     */
-    @Bean
-    public ToolCallbackProvider productToolProvider(ProductTools productTools) {
-        return MethodToolCallbackProvider.builder()
-                .toolObjects(productTools)
-                .build();
-    }
-
-    /**
-     * Registers all order-related tools.
-     * Tools exposed:
-     *   - getAllOrders
-     *   - getOrderById
-     *   - getOrdersByStatus
-     *   - getOrdersByEmployee
-     *   - getTotalRevenue
-     *   - getTopSellingProducts
-     */
-    @Bean
-    public ToolCallbackProvider orderToolProvider(OrderTools orderTools) {
-        return MethodToolCallbackProvider.builder()
-                .toolObjects(orderTools)
+                .toolObjects(recruitmentTools)
                 .build();
     }
 }
