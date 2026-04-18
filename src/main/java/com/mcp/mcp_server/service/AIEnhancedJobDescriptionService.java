@@ -28,7 +28,17 @@ public class AIEnhancedJobDescriptionService {
     private final ObjectMapper objectMapper;
 
     private ChatClient getChatClient() {
-        return chatClientProvider.getObject();
+        try {
+            ChatClient chatClient = chatClientProvider.getObject();
+            if (chatClient == null) {
+                log.error("ChatClient is null - AI service not properly initialized");
+                throw new IllegalStateException("ChatClient not available. Ensure ANTHROPIC_API_KEY is set.");
+            }
+            return chatClient;
+        } catch (Exception e) {
+            log.error("Failed to get ChatClient: {}", e.getMessage(), e);
+            throw new RuntimeException("ChatClient initialization failed. Please check if ANTHROPIC_API_KEY environment variable is set.", e);
+        }
     }
 
     /**
@@ -38,12 +48,19 @@ public class AIEnhancedJobDescriptionService {
         log.debug("Parsing job description using Claude Haiku AI");
 
         try {
+            // Verify API key is available
+            String apiKey = System.getenv("ANTHROPIC_API_KEY");
+            if (apiKey == null || apiKey.trim().isEmpty()) {
+                log.error("ANTHROPIC_API_KEY environment variable is not set");
+                throw new IllegalStateException("ANTHROPIC_API_KEY environment variable is required but not set");
+            }
+
             // Use Claude to intelligently extract JD metadata
             String aiAnalysis = analyzeJobDescriptionWithClaude(jobDescription);
             return buildJobDescriptionFromAIAnalysis(aiAnalysis, jobDescription);
         } catch (Exception e) {
-            log.error("AI parsing failed", e);
-            throw new RuntimeException("Failed to parse job description using AI", e);
+            log.error("AI parsing failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to parse job description using AI: " + e.getMessage(), e);
         }
     }
 
@@ -51,7 +68,7 @@ public class AIEnhancedJobDescriptionService {
      * Use Claude Haiku to analyze job description
      */
     private String analyzeJobDescriptionWithClaude(String jobDescription) {
-        String prompt = """
+        String prompt = String.format("""
                 Analyze the following job description and extract structured metadata as JSON.
                 Return ONLY a valid JSON object (no markdown, no extra text) with these exact fields:
                 {
@@ -68,10 +85,11 @@ public class AIEnhancedJobDescriptionService {
                 
                 Be comprehensive and extract all relevant skills and requirements.
                 
-                 Job Description:
-                 {jobDescription}
-                 """;
+                Job Description:
+                %s
+                """, jobDescription);
 
+         log.debug("Claude AI Analysis Prompt: {}", prompt);
          String response = getChatClient().prompt()
                  .user(prompt)
                  .call()
@@ -92,6 +110,16 @@ public class AIEnhancedJobDescriptionService {
                     .replaceAll("```\\n?", "")
                     .trim();
 
+            // Try to extract JSON if there's extra text (Claude might add explanation)
+            // Look for the first { and last } to extract just the JSON
+            int jsonStart = cleanedResponse.indexOf('{');
+            int jsonEnd = cleanedResponse.lastIndexOf('}');
+
+            if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {
+                cleanedResponse = cleanedResponse.substring(jsonStart, jsonEnd + 1);
+                log.debug("Extracted JSON from response: {}", cleanedResponse);
+            }
+
             JsonNode jsonNode = objectMapper.readTree(cleanedResponse);
 
             return JobDescription.builder()
@@ -107,8 +135,8 @@ public class AIEnhancedJobDescriptionService {
                     .location(getTextValue(jsonNode, "location", "Not Specified"))
                     .build();
         } catch (Exception e) {
-            log.error("Failed to parse AI response", e);
-            throw new RuntimeException("Failed to parse AI response for job description", e);
+            log.error("Failed to parse AI response: {}", aiResponse, e);
+            throw new RuntimeException("Failed to parse AI response for job description: " + e.getMessage(), e);
         }
     }
 
