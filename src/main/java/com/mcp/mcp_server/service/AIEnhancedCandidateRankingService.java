@@ -8,6 +8,7 @@ import com.mcp.mcp_server.entity.RankedCandidate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -22,8 +23,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AIEnhancedCandidateRankingService {
 
-    private final ChatClient chatClient;
+    private final ObjectProvider<ChatClient> chatClientProvider;
     private final ObjectMapper objectMapper;
+
+    private ChatClient getChatClient() {
+        return chatClientProvider.getObject();
+    }
 
     /**
      * Rank candidates using Claude Haiku AI for semantic analysis
@@ -115,7 +120,7 @@ public class AIEnhancedCandidateRankingService {
                 jobDescription.getYearsOfExperience() != null ? jobDescription.getYearsOfExperience() : "Not specified",
                 candidatesJson.toString());
 
-        String response = chatClient.prompt()
+        String response = getChatClient().prompt()
                 .user(prompt)
                 .call()
                 .content();
@@ -213,15 +218,15 @@ public class AIEnhancedCandidateRankingService {
                     String.join(", ", jobDescription.getRequiredSkills()),
                     String.join(", ", jobDescription.getPreferredSkills()),
                     jobDescription.getExperienceLevel(),
-                    String.join("; ", jobDescription.getResponsibilities()));
+                     String.join("; ", jobDescription.getResponsibilities()));
 
-            String response = chatClient.prompt()
-                    .user(prompt)
-                    .call()
-                    .content();
+             String response = getChatClient().prompt()
+                     .user(prompt)
+                     .call()
+                     .content();
 
-            String cleanedResponse = response
-                    .replaceAll("```json\\n?", "")
+             String cleanedResponse = response
+                     .replaceAll("```json\\n?", "")
                     .replaceAll("```\\n?", "")
                     .trim();
 
@@ -287,15 +292,15 @@ public class AIEnhancedCandidateRankingService {
                     candidate.getSkills() != null ? String.join(", ", candidate.getSkills()) : "Not specified",
                     jobDescription.getJobTitle(),
                     String.join(", ", jobDescription.getRequiredSkills()),
-                    String.join("; ", jobDescription.getResponsibilities().stream().limit(3).collect(Collectors.toList())));
+                     String.join("; ", jobDescription.getResponsibilities().stream().limit(3).collect(Collectors.toList())));
 
-            String response = chatClient.prompt()
-                    .user(prompt)
-                    .call()
-                    .content();
+             String response = getChatClient().prompt()
+                     .user(prompt)
+                     .call()
+                     .content();
 
-            String cleanedResponse = response
-                    .replaceAll("```json\\n?", "")
+             String cleanedResponse = response
+                     .replaceAll("```json\\n?", "")
                     .replaceAll("```\\n?", "")
                     .trim();
 

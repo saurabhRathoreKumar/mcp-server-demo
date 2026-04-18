@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -23,8 +24,12 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class AIEnhancedJobDescriptionService {
 
-    private final ChatClient chatClient;
+    private final ObjectProvider<ChatClient> chatClientProvider;
     private final ObjectMapper objectMapper;
+
+    private ChatClient getChatClient() {
+        return chatClientProvider.getObject();
+    }
 
     /**
      * Parse job description using Claude Haiku AI
@@ -63,17 +68,17 @@ public class AIEnhancedJobDescriptionService {
                 
                 Be comprehensive and extract all relevant skills and requirements.
                 
-                Job Description:
-                {jobDescription}
-                """;
+                 Job Description:
+                 {jobDescription}
+                 """;
 
-        String response = chatClient.prompt()
-                .user(prompt)
-                .call()
-                .content();
+         String response = getChatClient().prompt()
+                 .user(prompt)
+                 .call()
+                 .content();
 
-        log.debug("Claude AI Analysis Response: {}", response);
-        return response;
+         log.debug("Claude AI Analysis Response: {}", response);
+         return response;
     }
 
     /**
