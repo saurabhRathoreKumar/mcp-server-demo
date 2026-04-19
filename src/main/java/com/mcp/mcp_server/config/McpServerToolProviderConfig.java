@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
  * in the tools/list response.
  */
 @Configuration
-public class McpServerConfig {
+public class McpServerToolProviderConfig {
 
     /**
      * Registers all recruitment-related tools.

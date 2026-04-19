@@ -2,7 +2,7 @@ package com.mcp.mcp_server.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mcp.mcp_server.config.ZohoRecruitConfig;
+import com.mcp.mcp_server.config.ZohoRecruitPortalConnectionConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -13,8 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * Zoho Recruit OAuth 2.0 Service
  * Handles authentication with Zoho Recruit API using Client Credentials Grant
@@ -24,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class ZohoRecruitOAuthService {
 
-    private final ZohoRecruitConfig zhoRecruitConfig;
+    private final ZohoRecruitPortalConnectionConfig zhoRecruitConfig;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 

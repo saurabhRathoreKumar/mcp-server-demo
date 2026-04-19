@@ -100,6 +100,8 @@ public class AIEnhancedCandidateRankingService {
                   {
                     "candidateId": "id",
                     "matchPercentage": 85.5,
+                    "skillMatchPercentage": 80,
+                    "experienceMatchPercentage": 90,
                     "matchedSkills": ["skill1", "skill2"],
                     "missingSkills": ["skill3"],
                     "matchReasoning": "detailed reasoning...",
@@ -109,7 +111,9 @@ public class AIEnhancedCandidateRankingService {
                 ]
                 
                 Scoring guidelines:
-                - Match percentage should be 0-100
+                - matchPercentage: overall score 0-100 = (0.60 * skillMatch) + (0.25 * experienceMatch) + (0.15 * softSkillMatch)
+                - skillMatchPercentage: percentage of required skills present in candidate profile (0-100)
+                - experienceMatchPercentage: alignment of experience with JD requirements (0-100)
                 - Consider skill overlap (60%% weight), experience (25%% weight), and soft skills (15%% weight)
                 - Be realistic but fair in assessment
                 """,
@@ -156,6 +160,8 @@ public class AIEnhancedCandidateRankingService {
                             .email(candidate.getEmail())
                             .phone(candidate.getPhone())
                             .matchPercentage(Math.min(100.0, result.get("matchPercentage").asDouble()))
+                            .skillMatchPercentage(getDoubleValue(result, "skillMatchPercentage"))
+                            .experienceMatchPercentage(getDoubleValue(result, "experienceMatchPercentage"))
                             .matchedSkills(getListValue(result, "matchedSkills"))
                             .missingSkills(getListValue(result, "missingSkills"))
                             .matchReasoning(result.get("matchReasoning").asText())
@@ -342,6 +348,17 @@ public class AIEnhancedCandidateRankingService {
             }
         }
         return list;
+    }
+
+    /**
+     * Get double value from JsonNode
+     * Safely extracts numeric values, returning 0.0 if field doesn't exist or is null
+     */
+    private Double getDoubleValue(JsonNode node, String field) {
+        if (node.has(field) && !node.get(field).isNull()) {
+            return Math.min(100.0, node.get(field).asDouble());
+        }
+        return 0.0;
     }
 }
 

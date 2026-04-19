@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "zoho.recruit")
 @Getter
 @Setter
-public class ZohoRecruitConfig {
+public class ZohoRecruitPortalConnectionConfig {
 
     private String clientId;
     private String clientSecret;

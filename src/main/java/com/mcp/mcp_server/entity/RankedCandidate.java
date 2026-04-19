@@ -19,7 +19,10 @@ public class RankedCandidate {
     private String name;
     private String email;
     private String phone;
-    private Double matchPercentage;
+    private Double matchPercentage;              // Overall match percentage (0-100)
+    private Double skillMatchPercentage;         // Skill-specific match percentage (0-100)
+    private Double experienceMatchPercentage;    // Experience-specific match percentage (0-100)
+    private Integer rankPosition;                // Position in ranked list (1-based)
     private List<String> matchedSkills;
     private List<String> missingSkills;
     private String matchReasoning;

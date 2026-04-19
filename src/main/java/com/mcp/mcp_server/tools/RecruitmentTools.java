@@ -44,7 +44,7 @@ public class RecruitmentTools {
             - Key qualifications and responsibilities
             - Department and location
             
-            Uses Claude Haiku AI for intelligent extraction of job description metadata.
+            Uses AI model for intelligent extraction of job description metadata.
             """)
     public Map<String, Object> parseJobDescription(
             @ToolParam(description = "The complete job description text to parse") String jobDescription) {
@@ -186,22 +186,25 @@ public class RecruitmentTools {
             // Limit results
             rankedCandidates = rankedCandidates.stream().limit(limit).toList();
 
-            // Format for output
-            List<Map<String, Object>> output = rankedCandidates.stream()
-                    .map(ranked -> {
-                        Map<String, Object> map = new LinkedHashMap<>();
-                        map.put("candidateId", ranked.getCandidateId());
-                        map.put("name", ranked.getName());
-                        map.put("email", ranked.getEmail());
-                        map.put("phone", ranked.getPhone() != null ? ranked.getPhone() : "N/A");
-                        map.put("matchPercentage", String.format("%.1f%%", ranked.getMatchPercentage()));
-                        map.put("matchedSkills", ranked.getMatchedSkills());
-                        map.put("missingSkills", ranked.getMissingSkills());
-                        map.put("matchReasoning", ranked.getMatchReasoning());
-                        map.put("fitAnalysis", ranked.getFitAnalysis());
-                        return map;
-                    })
-                    .collect(Collectors.toList());
+            // Format for output - with rankPosition added
+            List<Map<String, Object>> output = new ArrayList<>();
+            for (int i = 0; i < rankedCandidates.size(); i++) {
+                RankedCandidate ranked = rankedCandidates.get(i);
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("candidateId", ranked.getCandidateId());
+                map.put("name", ranked.getName());
+                map.put("email", ranked.getEmail());
+                map.put("phone", ranked.getPhone() != null ? ranked.getPhone() : "N/A");
+                map.put("matchPercentage", ranked.getMatchPercentage());  // Numeric value, not formatted string
+                map.put("skillMatchPercentage", ranked.getSkillMatchPercentage() != null ? ranked.getSkillMatchPercentage() : 0.0);
+                map.put("experienceMatchPercentage", ranked.getExperienceMatchPercentage() != null ? ranked.getExperienceMatchPercentage() : 0.0);
+                map.put("matchedSkills", ranked.getMatchedSkills());
+                map.put("missingSkills", ranked.getMissingSkills());
+                map.put("fitAnalysis", ranked.getFitAnalysis());
+                map.put("matchReasoning", ranked.getMatchReasoning());
+                map.put("rankPosition", i + 1);  // Position in ranked list (1-based)
+                output.add(map);
+            }
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);

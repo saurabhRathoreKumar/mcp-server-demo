@@ -18,7 +18,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties
-public class AIConfiguration {
+public class AIModelConfiguration {
 
     /**
      * Configure ChatClient for Claude Haiku

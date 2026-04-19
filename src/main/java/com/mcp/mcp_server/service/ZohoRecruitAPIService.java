@@ -2,7 +2,7 @@ package com.mcp.mcp_server.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mcp.mcp_server.config.ZohoRecruitConfig;
+import com.mcp.mcp_server.config.ZohoRecruitPortalConnectionConfig;
 import com.mcp.mcp_server.entity.Candidate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +26,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ZohoRecruitAPIService {
 
-    private final ZohoRecruitConfig zohoRecruitConfig;
+    private final ZohoRecruitPortalConnectionConfig zohoRecruitPortalConnectionConfig;
     private final ZohoRecruitOAuthService oauthService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -41,14 +41,14 @@ public class ZohoRecruitAPIService {
      */
     public List<Candidate> searchCandidates(String criteria, Integer page, Integer pageSize) {
         try {
-            int pageNum = page != null ? page : zohoRecruitConfig.getDefaultPage();
-            int pageLen = pageSize != null ? pageSize : zohoRecruitConfig.getPageSize();
+            int pageNum = page != null ? page : zohoRecruitPortalConnectionConfig.getDefaultPage();
+            int pageLen = pageSize != null ? pageSize : zohoRecruitPortalConnectionConfig.getPageSize();
 
             log.info("Searching candidates with criteria: {} (page: {}, size: {})", criteria, pageNum, pageLen);
 
             // Build API URL with search parameters
-            String url = UriComponentsBuilder.fromUriString(zohoRecruitConfig.getApiBaseUrl())
-                    .path(zohoRecruitConfig.getCandidatesEndpoint())
+            String url = UriComponentsBuilder.fromUriString(zohoRecruitPortalConnectionConfig.getApiBaseUrl())
+                    .path(zohoRecruitPortalConnectionConfig.getCandidatesEndpoint())
                     .queryParam("criteria", criteria)
                     .queryParam("page", pageNum)
                     .queryParam("per_page", pageLen)
@@ -205,8 +205,8 @@ public class ZohoRecruitAPIService {
         try {
             log.info("Fetching candidate details for ID: {}", candidateId);
 
-            String url = UriComponentsBuilder.fromUriString(zohoRecruitConfig.getApiBaseUrl())
-                    .path(zohoRecruitConfig.getCandidatesEndpoint() + "/" + candidateId)
+            String url = UriComponentsBuilder.fromUriString(zohoRecruitPortalConnectionConfig.getApiBaseUrl())
+                    .path(zohoRecruitPortalConnectionConfig.getCandidatesEndpoint() + "/" + candidateId)
                     .build()
                     .toUriString();
 
